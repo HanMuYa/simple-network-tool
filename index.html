@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>企业级区块链资金图谱可视化编辑系统</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --theme-color: #38bdf8;
+            --theme-hover: #0284c7;
+            --grid-color: #1e293b;
+        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-main); color: var(--text-main); }
+
+        /* ── 顶部菜单栏 ── */
+        #menu-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 48px;
+            background: var(--bg-panel); border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; box-sizing: border-box; z-index: 10;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.3);
+        }
+        .logo-area { font-size: 14px; font-weight: bold; color: var(--theme-color); display: flex; align-items: center; gap: 8px; }
+        .menu-groups { display: flex; gap: 10px; align-items: center; }
+        .menu-btn {
+            background: #273549; border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all .2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .menu-btn:hover { background: var(--theme-hover); border-color: var(--theme-color); }
+        .menu-btn.export-btn { background: #1e3a4c; }
+        .menu-btn.export-btn:hover { background: #0e7490; }
+        .menu-btn.data-btn { background: #1a2e1a; border-color: #22c55e; }
+        .menu-btn.data-btn:hover { background: #166534; }
+        .menu-btn.active-toggle { background: var(--theme-hover); border-color: var(--theme-color); color: #fff; }
+        .menu-btn.help-btn { background: #2d1f5e; border-color: #7c3aed; color: #c4b5fd; }
+        .menu-btn.help-btn:hover { background: #5b21b6; border-color: #a78bfa; color: #fff; }
+        .select-layout { background: #273549; border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .menu-separator { color: var(--border-color); padding: 0 4px; font-size: 18px; }
+
+        /* ── 画布 ── */
+        svg { width: 100vw; height: 100vh; padding-top: 48px; box-sizing: border-box; }
+        .g-link { fill: none; cursor: pointer; transition: stroke .2s; }
+        .g-link:hover, .g-link.selected { opacity: .85; filter: drop-shadow(0 0 4px var(--theme-color)); }
+        .link-text { font-size: 11px; fill: #64748b; text-anchor: middle; cursor: pointer; user-select: none; font-weight: bold; }
+        .g-node { cursor: move; }
+        .g-node circle { stroke-width: 2px; transition: all .2s; }
+        .g-node:hover circle, .g-node.selected circle { stroke-width: 4px !important; }
+        .g-node.link-source circle { animation: linkPulse 1.4s ease-in-out infinite; }
+        @keyframes linkPulse {
+            0%, 100% { stroke-width: 3px; }
+            50%      { stroke-width: 7px; }
+        }
+
+        /* ── foreignObject 节点标签 ── */
+        .node-fo { overflow: visible; pointer-events: none; }
+        .node-label-wrap {
+            position: absolute;
+            display: inline-block;
+            max-width: 160px;
+            font-size: 12px;
+            color: #f8fafc;
+            line-height: 1.45;
+            word-break: break-word;
+            white-space: normal;
+            pointer-events: none;
+            user-select: none;
+        }
+        /* 节点标签默认居中对齐 */
+        .node-label-wrap { text-align: center; }
+
+        /* ── 悬停 Tooltip ── */
+        .hover-tooltip {
+            position: absolute; background: rgba(15,23,42,.95); border: 1px solid var(--theme-color);
+            color: #fff; padding: 12px; border-radius: 6px; font-size: 11px; z-index: 100; display: none;
+            pointer-events: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,.5); line-height: 1.6; min-width: 180px;
+        }
+        .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #223147; padding-bottom: 2px; }
+        .tooltip-label { color: var(--text-muted); margin-right: 15px; }
+        .tooltip-val { color: var(--text-main); font-weight: 500; }
+
+        /* ── 通用弹窗覆盖层 ── */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,.4); z-index: 150; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+
+        /* ── 帮助弹窗 ── */
+        #help-modal-wrap { z-index: 160; }
+        #help-modal {
+            background: #1e293b; border: 1px solid #7c3aed; border-radius: 10px;
+            padding: 24px 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.8); width: 400px; max-width: 90vw;
+        }
+        #help-modal h3 { margin: 0 0 16px; color: #c4b5fd; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        .help-section-title { font-size: 11px; color: var(--theme-color); font-weight: bold; margin: 12px 0 6px; letter-spacing: .5px; text-transform: uppercase; }
+        .help-item { font-size: 12px; color: var(--text-muted); line-height: 1.8; margin-bottom: 2px; display: flex; align-items: baseline; gap: 8px; }
+        .help-item i { color: #38bdf8; font-size: 13px; min-width: 16px; }
+        .help-item b { color: #f1f5f9; }
+        .kbd { display: inline-block; background: #334155; border: 1px solid #475569; border-radius: 3px; padding: 1px 6px; font-size: 10px; color: #cbd5e1; }
+        #help-modal .modal-close-btn { margin-top: 18px; width: 100%; padding: 8px; background: #5b21b6; border: none; color: #fff; border-radius: 5px; cursor: pointer; font-size: 13px; transition: background .2s; }
+        #help-modal .modal-close-btn:hover { background: #7c3aed; }
+
+        /* ── 右侧编辑抽屉 ── */
+        .edit-modal {
+            position: fixed; top: 48px; right: -420px; width: 400px; height: calc(100vh - 48px);
+            background: #1e293b; border-left: 1px solid var(--border-color);
+            box-shadow: -8px 0 30px rgba(0,0,0,.5); z-index: 200;
+            display: flex; flex-direction: column;
+            transition: right .3s cubic-bezier(.4,0,.2,1);
+            overflow: hidden;
+        }
+        .edit-modal.open { right: 0; }
+
+        /* 抽屉头部 */
+        .modal-header { font-size: 13px; color: var(--theme-color); font-weight: bold;
+            border-bottom: 1px solid var(--border-color); padding: 12px 16px; display: flex;
+            align-items: center; gap: 8px; flex-shrink: 0; }
+        .modal-close-btn { margin-left: auto; background: none; border: none; color: var(--text-muted);
+            font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all .15s; }
+        .modal-close-btn:hover { color: #fff; background: #334155; }
+
+        /* Tab 栏 */
+        .tab-bar { display: flex; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .tab-btn { flex: 1; padding: 8px 0; font-size: 12px; color: var(--text-muted);
+            background: none; border: none; border-bottom: 2px solid transparent;
+            cursor: pointer; transition: all .15s; text-align: center; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--theme-color); border-bottom-color: var(--theme-color); font-weight: 600; }
+
+        /* 可视化编辑区 */
+        .modal-body { flex: 1; overflow-y: auto; padding: 12px 16px; min-height: 0; }
+
+        /* 自定义滚动条 */
+        .modal-body::-webkit-scrollbar { width: 6px; }
+        .modal-body::-webkit-scrollbar-track { background: transparent; }
+        .modal-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .modal-body::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .modal-body { scrollbar-width: thin; scrollbar-color: #475569 transparent; }
+
+        .modal-field { margin-bottom: 10px; }
+        .modal-field label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .modal-field input[type="text"],
+        .modal-field input[type="number"],
+        .modal-field textarea,
+        .modal-field select { width: 100%; background: #0f172a; border: 1px solid var(--border-color);
+            color: #fff; padding: 6px; border-radius: 4px; font-size: 12px; box-sizing: border-box; }
+        .modal-field textarea { resize: vertical; min-height: 64px; font-family: inherit; line-height: 1.5; }
+        .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus { border-color: var(--theme-color); outline: none; }
+        .modal-field input[type="color"] { width: 40px; height: 28px; padding: 2px 3px; border-radius: 4px;
+            border: 1px solid var(--border-color); background: #0f172a; cursor: pointer; vertical-align: middle; }
+        .modal-field input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--theme-color); }
+        .field-row { display: flex; align-items: center; gap: 8px; }
+        .field-row input[type="text"], .field-row input[type="number"] { flex: 1; }
+        .range-val { font-size: 11px; color: var(--theme-color); min-width: 28px; text-align: right; }
+        .modal-section { font-size: 10px; color: var(--theme-color); font-weight: bold; letter-spacing: .5px; text-transform: uppercase;
+            margin: 12px 0 6px; border-top: 1px solid var(--border-color); padding-top: 8px; }
+
+        /* JSON 编辑区 */
+        .json-editor-wrap { flex: 1; display: none; flex-direction: column; min-height: 0; }
+        .json-editor-wrap.active { display: flex; }
+        .json-editor-header { display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .json-editor-header span { font-size: 11px; color: var(--text-muted); }
+        .json-format-btn { background: #273549; border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 3px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all .15s; }
+        .json-format-btn:hover { background: var(--theme-hover); border-color: var(--theme-color); }
+        #json-editor { flex: 1; width: 100%; background: #0f172a; color: #a5f3fc; border: none;
+            padding: 12px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 11.5px;
+            line-height: 1.6; resize: none; outline: none; min-height: 0; }
+        #json-error { padding: 6px 16px; font-size: 11px; color: #f87171; background: rgba(248,113,113,.08);
+            border-top: 1px solid rgba(248,113,113,.2); display: none; flex-shrink: 0; }
+
+        /* 抽屉底部（仅删除按钮） */
+        .modal-footer-danger { padding: 12px 16px; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .btn-delete { width: 100%; padding: 7px 0; background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.4);
+            color: #f87171; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all .15s;
+            display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-delete:hover { background: rgba(239,68,68,.3); color: #fff; }
+
+        /* 图片 URL 预览 */
+        .img-preview { width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--border-color); margin-top: 6px; display: none; }
+
+        /* ── 导出下拉 ── */
+        .dropdown-wrapper { position: relative; }
+        .dropdown-menu { position: absolute; top: 36px; right: 0; background: #1e293b; border: 1px solid var(--border-color);
+            border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.5); min-width: 160px; z-index: 50; display: none; }
+        .dropdown-menu.open { display: block; }
+        .dropdown-item { padding: 9px 14px; font-size: 12px; color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: background .15s; }
+        .dropdown-item:hover { background: #273549; }
+        .dropdown-item i { font-size: 14px; color: var(--theme-color); }
+        .dropdown-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+        /* ── 网格线 ── */
+        .grid-layer { pointer-events: none; }
+        .grid-layer line { stroke: var(--grid-color); stroke-width: 0.5; }
+        .grid-layer line.grid-major { stroke-width: 1; }
+
+        /* ── 浅色主题覆盖 ── */
+        body.light-theme { --bg-main: #f1f5f9; --bg-panel: #ffffff; --border-color: #cbd5e1;
+            --text-main: #1e293b; --text-muted: #64748b; --theme-color: #2563eb; --theme-hover: #1d4ed8;
+            --grid-color: #e2e8f0; }
+        body.light-theme .menu-btn { background: #e2e8f0; border-color: #cbd5e1; color: #1e293b; }
+        body.light-theme .menu-btn:hover { background: #cbd5e1; }
+        body.light-theme .menu-btn.data-btn { background: #dcfce7; border-color: #22c55e; color: #166534; }
+        body.light-theme .menu-btn.export-btn { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+        body.light-theme .menu-btn.help-btn { background: #ede9fe; border-color: #7c3aed; color: #5b21b6; }
+        body.light-theme .select-layout { background: #e2e8f0; border-color: #cbd5e1; color: #1e293b; }
+        body.light-theme .g-link { stroke: #94a3b8; }
+        body.light-theme .link-text { fill: #475569; }
+        body.light-theme .node-label-wrap { color: #1e293b; }
+        body.light-theme .hover-tooltip { background: rgba(255,255,255,.95); color: #1e293b; border-color: #2563eb; }
+        body.light-theme .tooltip-row { border-bottom-color: #e2e8f0; }
+        body.light-theme .hover-tooltip b { color: #1e293b; }
+        body.light-theme .hover-tooltip [style*="color:#f8fafc"],
+        body.light-theme .hover-tooltip [style*="color: #f8fafc"],
+        body.light-theme .hover-tooltip [style*="color:#f1f5f9"],
+        body.light-theme .hover-tooltip [style*="color: #f1f5f9"] { color: #1e293b !important; }
+        body.light-theme .dropdown-menu { background: #fff; border-color: #e2e8f0; }
+        body.light-theme .dropdown-item:hover { background: #f1f5f9; }
+        body.light-theme .dropdown-divider { background: #e2e8f0; }
+        body.light-theme .edit-modal { background: #fff; border-color: #e2e8f0; }
+        body.light-theme .modal-header { border-color: #e2e8f0; }
+        body.light-theme .modal-section { color: #475569; }
+        body.light-theme .modal-body::-webkit-scrollbar-thumb { background: #cbd5e1; }
+        body.light-theme #help-modal { background: #fff; color: #1e293b; }
+        body.light-theme .btn-delete { border-color: #fca5a5; color: #dc2626; }
+        body.light-theme .json-format-btn { background: #e2e8f0; border-color: #cbd5e1; color: #1e293b; }
+
+        /* ── 预设下拉 & 右键菜单 ── */
+        .preset-item { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .preset-item .preset-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .preset-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 13px;
+            padding: 0 4px; border-radius: 3px; display: none; }
+        .preset-item:hover .preset-del { display: inline-block; }
+        .preset-del:hover { background: rgba(239,68,68,.2); }
+        .preset-add-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 12px;
+            color: var(--theme-color); cursor: pointer; border-top: 1px solid var(--border-color); }
+        .preset-add-btn:hover { background: #273549; }
+        body.light-theme .preset-add-btn:hover { background: #f1f5f9; }
+
+        .ctx-menu { position: fixed; background: var(--bg-panel); border: 1px solid var(--border-color);
+            border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.5); min-width: 160px; z-index: 200; display: none; }
+        .ctx-menu.open { display: block; }
+        .ctx-item { padding: 9px 14px; font-size: 12px; color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: background .15s; }
+        .ctx-item:hover { background: #273549; }
+        .ctx-item.disabled { opacity: 0.4; pointer-events: none; }
+        .ctx-item i { font-size: 14px; color: var(--theme-color); }
+        body.light-theme .ctx-menu { background: #fff; border-color: #e2e8f0; }
+        body.light-theme .ctx-item:hover { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+<div id="menu-bar">
+    <div class="logo-area">
+        <i class="bi bi-diagram-3-fill" style="font-size:16px;"></i>
+        Blockchain Atlas Studio
+        <span style="font-size:10px;background:#3b82f6;color:white;padding:2px 6px;border-radius:10px;">v5.6</span>
+    </div>
+    <div class="menu-groups">
+        <button class="menu-btn" onclick="clearCanvas()"><i class="bi bi-trash3"></i> 清空画布</button>
+        <button class="menu-btn" onclick="addNewNodeManual()"><i class="bi bi-plus-circle"></i> 添加节点</button>
+        <input type="file" id="json-import-input" accept=".json" style="display:none">
+        <!-- 插入预设 -->
+        <div class="dropdown-wrapper">
+            <button class="menu-btn" onclick="toggleDropdown(event, 'preset-menu'); refreshPresetMenu()">
+                <i class="bi bi-bookmark-star"></i> 插入预设
+                <i class="bi bi-chevron-down" style="font-size:10px;"></i>
+            </button>
+            <div class="dropdown-menu" id="preset-menu" style="min-width:200px; max-height:320px; overflow-y:auto;">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+        <span class="menu-separator">|</span>
+        <!-- 数据导入导出 -->
+        <div class="dropdown-wrapper">
+            <button class="menu-btn data-btn" onclick="toggleDropdown(event, 'data-menu')">
+                <i class="bi bi-database"></i> 数据
+                <i class="bi bi-chevron-down" style="font-size:10px;"></i>
+            </button>
+            <div class="dropdown-menu" id="data-menu">
+                <div class="dropdown-item" onclick="document.getElementById('json-import-input').click(); closeDropdowns()"><i class="bi bi-upload"></i> 导入 JSON</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="exportJSON(); closeDropdowns()"><i class="bi bi-filetype-json"></i> 导出 JSON</div>
+            </div>
+        </div>
+        <!-- 图片导出 -->
+        <div class="dropdown-wrapper">
+            <button class="menu-btn export-btn" onclick="toggleDropdown(event, 'img-menu')">
+                <i class="bi bi-image"></i> 导出图片
+                <i class="bi bi-chevron-down" style="font-size:10px;"></i>
+            </button>
+            <div class="dropdown-menu" id="img-menu">
+                <div class="dropdown-item" onclick="exportPNG(); closeDropdowns()"><i class="bi bi-filetype-png"></i> 导出 PNG</div>
+                <div class="dropdown-item" onclick="exportSVG(); closeDropdowns()"><i class="bi bi-filetype-svg"></i> 导出 SVG</div>
+            </div>
+        </div>
+        <span class="menu-separator">|</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text-muted);">
+            <i class="bi bi-sliders"></i> 布局:
+            <select class="select-layout" id="layoutSelect" onchange="triggerLayout(this.value)">
+                <option value="free">自由拖拽</option>
+                <option value="circular">圆形环状</option>
+                <option value="flow">数据流向</option>
+                <option value="hierarchical">层级树状</option>
+            </select>
+        </span>
+        <span class="menu-separator">|</span>
+        <button class="menu-btn" id="grid-toggle-btn" onclick="toggleGrid()"><i class="bi bi-grid-3x3"></i> 网格</button>
+        <button class="menu-btn" id="theme-toggle-btn" onclick="toggleTheme()"><i class="bi bi-moon-stars-fill"></i> 主题</button>
+        <button class="menu-btn help-btn" onclick="openHelpModal()"><i class="bi bi-question-circle-fill"></i> 帮助</button>
+    </div>
+</div>
+
+<!-- 帮助弹窗 -->
+<div class="modal-overlay" id="help-modal-wrap" onclick="closeHelpModal(event)">
+    <div id="help-modal" onclick="event.stopPropagation()">
+        <h3><i class="bi bi-question-circle-fill" style="color:#7c3aed;"></i> 操作使用指南</h3>
+        <div class="help-section-title">基础交互</div>
+        <div class="help-item"><i class="bi bi-cursor"></i><span><b>鼠标悬停节点</b>：显示自定义 Tooltip（支持 HTML）</span></div>
+        <div class="help-item"><i class="bi bi-mouse2"></i><span><b>双击元素</b>：右侧打开属性编辑面板（实时渲染）</span></div>
+        <div class="help-item"><i class="bi bi-hand-index-thumb"></i><span><b>点击节点</b>：选中；连续点击两节点自动连线</span></div>
+        <div class="help-item"><i class="bi bi-arrows-move"></i><span><b>拖拽节点</b>：自由移动位置</span></div>
+        <div class="help-item"><i class="bi bi-fullscreen"></i><span><b>滚轮 / 拖拽画布</b>：缩放与平移</span></div>
+        <div class="help-section-title">属性编辑</div>
+        <div class="help-item"><i class="bi bi-sliders"></i><span><b>可视化编辑</b>：修改颜色、大小、文本等，实时生效</span></div>
+        <div class="help-item"><i class="bi bi-code-slash"></i><span><b>JSON 编辑</b>：直接编辑 JSON 数据，实时同步到画布</span></div>
+        <div class="help-item"><i class="bi bi-arrows-move"></i><span><b>标签偏移</b>：X/Y 偏移量（可为负数），实时生效</span></div>
+        <div class="help-item"><i class="bi bi-image"></i><span><b>背景图片</b>：输入图片 URL，圆形裁剪填充节点</span></div>
+        <div class="help-section-title">布局算法</div>
+        <div class="help-item"><i class="bi bi-arrow-right-circle"></i><span><b>数据流向布局</b>：按连线方向左→右分层排列</span></div>
+        <div class="help-item"><i class="bi bi-diagram-3"></i><span><b>层级树状布局</b>：树形结构，根在上子在下</span></div>
+        <div class="help-section-title">快捷创建 / 删除</div>
+        <div class="help-item"><i class="bi bi-plus-square"></i><span><b>双击空白</b>：就地快捷创建新节点</span></div>
+        <div class="help-item"><i class="bi bi-backspace"></i><span>选中后按 <span class="kbd">Delete</span> 或 <span class="kbd">Backspace</span> 删除</span></div>
+        <div class="help-section-title">预设 & 右键</div>
+        <div class="help-item"><i class="bi bi-bookmark-star"></i><span><b>插入预设</b>：从已保存的模板快速创建节点</span></div>
+        <div class="help-item"><i class="bi bi-mouse2"></i><span><b>右键节点</b>：复制 / 导出配置 / 保存为预设</span></div>
+        <div class="help-item"><i class="bi bi-clipboard-plus"></i><span><b>右键画布空白</b>：粘贴已复制的节点</span></div>
+        <div class="help-section-title">双向连线</div>
+        <div class="help-item"><i class="bi bi-bezier2"></i><span><b>双向连线</b>：若两节点间有 A→B 和 B→A，连线自动弯曲避免重叠</span></div>
+        <div class="help-section-title">导入 / 导出</div>
+        <div class="help-item"><i class="bi bi-database"></i><span><b>数据</b> 下拉：导入 / 导出 JSON 数据</span></div>
+        <div class="help-item"><i class="bi bi-image"></i><span><b>导出图片</b> 下拉：导出 PNG / SVG</span></div>
+        <div class="help-section-title">视图</div>
+        <div class="help-item"><i class="bi bi-moon-stars-fill"></i><span><b>主题</b>：深色 / 浅色切换</span></div>
+        <div class="help-item"><i class="bi bi-grid-3x3"></i><span><b>网格</b>：画布网格线开关（导出时自动隐藏）</span></div>
+        <button class="modal-close-btn" onclick="closeHelpModal()"><i class="bi bi-check2"></i> 知道了</button>
+    </div>
+</div>
+
+<div id="hover-tooltip" class="hover-tooltip"></div>
+
+<!-- 节点右键菜单 -->
+<div class="ctx-menu" id="node-ctx-menu">
+    <div class="ctx-item" id="ctx-copy"><i class="bi bi-clipboard"></i> 复制节点</div>
+    <div class="dropdown-divider"></div>
+    <div class="ctx-item" id="ctx-export-node"><i class="bi bi-download"></i> 导出节点配置</div>
+    <div class="ctx-item" id="ctx-save-preset"><i class="bi bi-bookmark-star"></i> 保存为预设</div>
+</div>
+
+<!-- 画布空白处右键菜单 -->
+<div class="ctx-menu" id="canvas-ctx-menu">
+    <div class="ctx-item" id="ctx-paste"><i class="bi bi-clipboard-plus"></i> 粘贴节点</div>
+</div>
+
+<!-- 右侧编辑抽屉 -->
+<div id="edit-modal" class="edit-modal">
+    <div class="modal-header">
+        <i class="bi bi-pencil-square" id="modal-icon"></i>
+        <span id="modal-title-text">编辑属性</span>
+        <button class="modal-close-btn" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="visual"><i class="bi bi-sliders"></i> 可视化编辑</button>
+        <button class="tab-btn" data-tab="json"><i class="bi bi-code-slash"></i> JSON 编辑</button>
+    </div>
+    <div class="modal-body" id="modal-fields"></div>
+    <div class="json-editor-wrap" id="json-editor-wrap">
+        <div class="json-editor-header">
+            <span><i class="bi bi-info-circle"></i> 直接编辑 JSON，实时生效</span>
+            <button class="json-format-btn" onclick="formatJsonEditor()"><i class="bi bi-magic"></i> 格式化</button>
+        </div>
+        <textarea id="json-editor" spellcheck="false"></textarea>
+        <div id="json-error"></div>
+    </div>
+    <div class="modal-footer-danger">
+        <button class="btn-delete" id="modal-delete-btn">
+            <i class="bi bi-trash"></i> 删除此节点
+        </button>
+    </div>
+</div>
+
+<svg id="canvas"></svg>
+
+<script>
+const W = window.innerWidth, H = window.innerHeight;
+
+// ── 默认值 ──
+const DEF_NODE = { color: '#1e3a8a', strokeColor: '#3b82f6', strokeWidth: 2, radius: 22, labelOffsetX: 0, labelOffsetY: 34 };
+const DEF_LINK = { color: '#475569', width: 3, textColor: '', fontSize: 0 };
+
+// ── 初始数据 ──
+let nodes = [
+    {
+        id: "addr_01", x: W/2-260, y: H/2,
+        color: '#0f2a5e', strokeColor: '#3b82f6', radius: 28,
+        labelOffsetX: 110, labelOffsetY: 0,
+        tooltipHtml: `<div style="color:#38bdf8;font-weight:bold;margin-bottom:6px;">交易所热钱包</div>
+<div class="tooltip-row"><span class="tooltip-label">风险评级</span><span class="tooltip-val" style="color:#22c55e;">低风险</span></div>
+<div class="tooltip-row"><span class="tooltip-label">持有资产</span><span class="tooltip-val">45,000,000 USDT</span></div>
+<div class="tooltip-row"><span class="tooltip-label">最后活跃</span><span class="tooltip-val">2026-06-08</span></div>
+<div class="tooltip-row"><span class="tooltip-label">备注</span><span class="tooltip-val">充值主节点</span></div>`,
+        imageUrl: ''
+    },
+    {
+        id: "addr_02", x: W/2, y: H/2-110,
+        color: '#4c1d1d', strokeColor: '#ef4444', radius: 24,
+        labelOffsetX: 0, labelOffsetY: -36,
+        labelHtml: '<b style="color:#fca5a5;">可疑洗钱账户</b><br><span style="color:#64748b;font-size:10px;">TX9qvC…MCMQ</span>',
+        tooltipHtml: `<div style="color:#ef4444;font-weight:bold;margin-bottom:6px;">⚠️ 高危节点</div>
+<div class="tooltip-row"><span class="tooltip-label">风险评级</span><span class="tooltip-val" style="color:#ef4444;">高危</span></div>
+<div class="tooltip-row"><span class="tooltip-label">持有资产</span><span class="tooltip-val">12,401 USDT</span></div>
+<div class="tooltip-row"><span class="tooltip-label">防洗钱警报</span><span class="tooltip-val">频繁小额混币</span></div>
+<div class="tooltip-row"><span class="tooltip-label">归属地</span><span class="tooltip-val">未知匿名</span></div>`,
+        imageUrl: ''
+    },
+    {
+        id: "addr_03", x: W/2+260, y: H/2,
+        color: '#1c3a2a', strokeColor: '#22c55e', radius: 30,
+        labelOffsetX: 110, labelOffsetY: 0,
+        labelHtml: '<b style="color:#bbf7d0;">分流混币合约</b><br><span style="color:#64748b;font-size:10px;">TR7NHw…A6m</span>',
+        tooltipHtml: `<div style="color:#22c55e;font-weight:bold;margin-bottom:6px;">智能合约节点</div>
+<div class="tooltip-row"><span class="tooltip-label">风险评级</span><span class="tooltip-val" style="color:#facc15;">中风险</span></div>
+<div class="tooltip-row"><span class="tooltip-label">类型</span><span class="tooltip-val">智能合约</span></div>
+<div class="tooltip-row"><span class="tooltip-label">代码开源</span><span class="tooltip-val">是</span></div>
+<div class="tooltip-row"><span class="tooltip-label">总质押量</span><span class="tooltip-val">1.2B</span></div>`,
+        imageUrl: ''
+    }
+];
+
+let links = [
+    { source: "addr_01", target: "addr_02", amount: "50,000 USDT",
+      color: DEF_LINK.color, strokeWidth: DEF_LINK.width,
+      tooltipData: { "交易哈希": "0x89abcdef...", "手续费": "12.5 TRX", "区块高度": "84,910,233" } },
+    { source: "addr_02", target: "addr_03", amount: "48,900 USDT",
+      color: '#7c3aed', strokeWidth: 4,
+      tooltipData: { "交易哈希": "0x12345678...", "手续费": "24.1 TRX", "区块高度": "84,910,412" } }
+];
+
+let selectedNode = null, selectedLink = null, sourceNodeForLink = null;
+let currentEditingTarget = null, currentEditingType = null;
+let jsonEditorTimer = null, clickTimer = null;
+
+// ── D3 画布脚手架 ──
+const svg = d3.select("#canvas");
+const container = svg.append("g").attr("class", "main-container");
+const defs = svg.append("defs");
+
+const zoomBehavior = d3.zoom().scaleExtent([0.1, 5])
+    .on("zoom", (e) => { container.attr("transform", e.transform); hideHoverTooltip(); });
+svg.call(zoomBehavior).on("dblclick.zoom", null);
+
+// 动态箭头 marker
+function ensureArrowMarker(color) {
+    const id = "arrow-" + color.replace(/[^a-zA-Z0-9]/g, '_');
+    if (defs.select("#" + id).empty()) {
+        defs.append("marker")
+            .attr("id", id).attr("viewBox", "0 -5 10 10").attr("refX", 28).attr("refY", 0)
+            .attr("markerWidth", 6).attr("markerHeight", 6).attr("orient", "auto")
+            .append("path").attr("d", "M0,-4L10,0L0,4").attr("fill", color);
+    }
+    return "url(#" + id + ")";
+}
+
+// 图片 clipPath
+function ensureImageClip(nodeId) {
+    const clipId = "clip-" + nodeId;
+    if (defs.select("#" + clipId).empty()) {
+        defs.append("clipPath").attr("id", clipId)
+            .append("circle").attr("cx", 0).attr("cy", 0).attr("r", 22);
+    }
+    return clipId;
+}
+
+const linkLayer = container.append("g");
+const nodeLayer = container.append("g");
+
+const simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d => d.id))
+    .on("tick", ticked);
+
+const tooltipDiv = d3.select("#hover-tooltip");
+const modalEl    = document.getElementById("edit-modal");
+
+// ── 双向连线检测 & 路径计算 ──
+function detectBidirectional() {
+    // 构建连线 key 集合
+    const linkKeys = new Set();
+    links.forEach(l => {
+        const sid = typeof l.source === 'object' ? (l.source.id || l.source) : l.source;
+        const tid = typeof l.target === 'object' ? (l.target.id || l.target) : l.target;
+        linkKeys.add(sid + '->' + tid);
+    });
+    links.forEach(l => {
+        const sid = typeof l.source === 'object' ? (l.source.id || l.source) : l.source;
+        const tid = typeof l.target === 'object' ? (l.target.id || l.target) : l.target;
+        l._bidirectional = linkKeys.has(tid + '->' + sid);
+        // 弯曲方向：source.id < target.id 的弯向一侧，另一个弯向另一侧
+        l._curveDir = sid < tid ? 1 : -1;
+    });
+}
+
+function computeLinkPath(d) {
+    const x1 = d.source.x, y1 = d.source.y;
+    const x2 = d.target.x, y2 = d.target.y;
+    if (d._bidirectional) {
+        // 法线始终按 小ID→大ID 的固定方向计算，确保 _curveDir 的正负真正产生相反偏移
+        const sid = typeof d.source === 'object' ? (d.source.id || d.source) : d.source;
+        const tid = typeof d.target === 'object' ? (d.target.id || d.target) : d.target;
+        let ndx, ndy;
+        if (sid < tid) { ndx = x2 - x1; ndy = y2 - y1; }
+        else { ndx = x1 - x2; ndy = y1 - y2; }
+        const nlen = Math.sqrt(ndx * ndx + ndy * ndy) || 1;
+        const nx = -ndy / nlen, ny = ndx / nlen;
+        const offset = 25 * d._curveDir;
+        const r1 = 0.2, r2 = 0.8;
+        const dx = x2 - x1, dy = y2 - y1;
+        const e1x = x1 + dx * r1 + nx * offset;
+        const e1y = y1 + dy * r1 + ny * offset;
+        const e2x = x1 + dx * r2 + nx * offset;
+        const e2y = y1 + dy * r2 + ny * offset;
+        d._midX = (e1x + e2x) / 2;
+        d._midY = (e1y + e2y) / 2;
+        return `M${x1},${y1} L${e1x},${e1y} L${e2x},${e2y} L${x2},${y2}`;
+    }
+    d._midX = null; d._midY = null;
+    return `M${x1},${y1} L${x2},${y2}`;
+}
+
+function computeLinkTextPos(d) {
+    // 双向折线：文本显示在平行中段的中点；单向直线：文本显示在中点
+    if (d._bidirectional && d._midX != null) {
+        return { x: d._midX, y: d._midY };
+    }
+    return { x: (d.source.x + d.target.x) / 2, y: (d.source.y + d.target.y) / 2 };
+}
+
+// Tab 切换
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
+    document.getElementById('modal-fields').style.display = tabName === 'visual' ? '' : 'none';
+    document.getElementById('json-editor-wrap').classList.toggle('active', tabName === 'json');
+    if (tabName === 'json') {
+        syncJsonFromTarget();
+    } else if (tabName === 'visual' && currentEditingTarget) {
+        // 从 JSON Tab 切回时，同步表单值
+        syncVisualFromTarget();
+    }
+}
+
+// JSON → 可视化表单同步
+function syncVisualFromTarget() {
+    const d = currentEditingTarget;
+    if (currentEditingType === 'node') {
+        const lh = document.getElementById('m-label-html');
+        if (lh) lh.value = d.labelHtml || '';
+        const th = document.getElementById('m-tooltip-html');
+        if (th) th.value = d.tooltipHtml || '';
+        const nc = document.getElementById('m-node-color');
+        if (nc) { nc.value = d.color || DEF_NODE.color; const h=document.getElementById('m-node-color-hex'); if(h) h.value=nc.value; }
+        const ns = document.getElementById('m-node-stroke');
+        if (ns) { ns.value = d.strokeColor || DEF_NODE.strokeColor; const h=document.getElementById('m-node-stroke-hex'); if(h) h.value=ns.value; }
+        const nr = document.getElementById('m-node-radius');
+        if (nr) { nr.value = d.radius || DEF_NODE.radius; const v=document.getElementById('m-node-radius-val'); if(v) v.textContent=nr.value; }
+        const nsw = document.getElementById('m-node-stroke-w');
+        if (nsw) { nsw.value = d.strokeWidth != null ? d.strokeWidth : DEF_NODE.strokeWidth; const v=document.getElementById('m-node-stroke-w-val'); if(v) v.textContent=nsw.value; }
+        const iu = document.getElementById('m-img-url');
+        if (iu) iu.value = d.imageUrl || '';
+        const ip = document.getElementById('m-img-preview');
+        if (ip) { if(d.imageUrl){ip.src=d.imageUrl;ip.style.display='block';}else{ip.style.display='none';} }
+        const lox = document.getElementById('m-label-offset-x');
+        if (lox) lox.value = d.labelOffsetX != null ? d.labelOffsetX : DEF_NODE.labelOffsetX;
+        const loy = document.getElementById('m-label-offset-y');
+        if (loy) loy.value = d.labelOffsetY != null ? d.labelOffsetY : DEF_NODE.labelOffsetY;
+    } else {
+        const ba = document.getElementById('m-base-amount');
+        if (ba) ba.value = d.amount || '';
+        const lc = document.getElementById('m-link-color');
+        if (lc) { lc.value = d.color || DEF_LINK.color; const h=document.getElementById('m-link-color-hex'); if(h) h.value=lc.value; }
+        const lw = document.getElementById('m-link-width');
+        if (lw) { lw.value = d.strokeWidth || DEF_LINK.width; const v=document.getElementById('m-link-width-val'); if(v) v.textContent=lw.value; }
+        const ltc = document.getElementById('m-link-text-color');
+        if (ltc) { ltc.value = d.textColor || DEF_LINK.textColor; const h=document.getElementById('m-link-text-color-hex'); if(h) h.value=ltc.value; }
+        const lfs = document.getElementById('m-link-font-size');
+        if (lfs) { lfs.value = d.fontSize || DEF_LINK.fontSize; const v=document.getElementById('m-link-font-size-val'); if(v) v.textContent=lfs.value || '默认'; }
+        document.querySelectorAll('#modal-fields .m-custom-field').forEach(inp => {
+            const k = inp.getAttribute('data-key');
+            if (d.tooltipData && d.tooltipData[k] !== undefined) inp.value = d.tooltipData[k];
+        });
+    }
+}
+
+// JSON 编辑器
+function syncJsonFromTarget() {
+    if (!currentEditingTarget) return;
+    const clean = {};
+    if (currentEditingType === 'link') {
+        const fields = ['source','target','amount','color','strokeWidth','textColor','fontSize','tooltipData'];
+        fields.forEach(k => { if (currentEditingTarget[k] !== undefined && k !== 'source' && k !== 'target') clean[k] = currentEditingTarget[k]; });
+        // source/target 序列化为 ID
+        clean.source = typeof currentEditingTarget.source === 'object' ? currentEditingTarget.source.id : currentEditingTarget.source;
+        clean.target = typeof currentEditingTarget.target === 'object' ? currentEditingTarget.target.id : currentEditingTarget.target;
+    } else {
+        const fields = ['id','x','y','color','strokeColor','strokeWidth','radius','labelOffsetX','labelOffsetY','labelHtml','tooltipHtml','imageUrl'];
+        fields.forEach(k => { if (currentEditingTarget[k] !== undefined) clean[k] = currentEditingTarget[k]; });
+    }
+    document.getElementById('json-editor').value = JSON.stringify(clean, null, 2);
+    document.getElementById('json-error').style.display = 'none';
+}
+
+function onJsonInput() {
+    clearTimeout(jsonEditorTimer);
+    jsonEditorTimer = setTimeout(() => {
+        const raw = document.getElementById('json-editor').value;
+        const errEl = document.getElementById('json-error');
+        try {
+            const parsed = JSON.parse(raw);
+            Object.assign(currentEditingTarget, parsed);
+            // 同步 fx/fy 如果 x/y 变了
+            if (parsed.x != null) currentEditingTarget.fx = parsed.x;
+            if (parsed.y != null) currentEditingTarget.fy = parsed.y;
+            errEl.style.display = 'none';
+            updateGraph();
+        } catch(e) {
+            errEl.textContent = '⚠️ JSON 解析错误：' + e.message;
+            errEl.style.display = 'block';
+        }
+    }, 300);
+}
+
+function formatJsonEditor() {
+    const ta = document.getElementById('json-editor');
+    try {
+        ta.value = JSON.stringify(JSON.parse(ta.value), null, 2);
+        document.getElementById('json-error').style.display = 'none';
+    } catch(e) {}
+}
+
+// ── 核心渲染 ──
+function updateGraph() {
+    // 确保 links 的 source/target 引用当前 nodes 数组中的对象
+    const nodeMap = {};
+    nodes.forEach(n => nodeMap[n.id] = n);
+    links.forEach(l => {
+        const sid = typeof l.source === 'object' ? (l.source.id || l.source) : l.source;
+        const tid = typeof l.target === 'object' ? (l.target.id || l.target) : l.target;
+        if (nodeMap[sid]) l.source = nodeMap[sid];
+        if (nodeMap[tid]) l.target = nodeMap[tid];
+    });
+
+    nodes.forEach(d => { if (d.x != null) d.fx = d.x; if (d.y != null) d.fy = d.y; });
+
+    // 检测双向连线
+    detectBidirectional();
+
+    // 连线层
+    const linkSel = linkLayer.selectAll(".link-group").data(links,
+        d => `${d.source.id || d.source}-${d.target.id || d.target}-${d.amount}`);
+    linkSel.exit().remove();
+    const linkEnter = linkSel.enter().append("g").attr("class", "link-group");
+
+    linkEnter.append("path").attr("class", "g-link")
+        .on("click", (e, d) => { e.stopPropagation(); clearSelection(); selectedLink = d; updateGraph(); })
+        .on("mousemove", (e, d) => {
+            let h = `<b>流向:</b> ${d.amount}<br>`;
+            for (let k in d.tooltipData) h += `<b>${k}:</b> ${d.tooltipData[k]}<br>`;
+            showHoverTooltip(e, h);
+        })
+        .on("mouseleave", hideHoverTooltip)
+        .on("dblclick", (e, d) => openAdvancedEditor(e, d, 'link'));
+
+    linkEnter.append("text").attr("class", "link-text").attr("dy", -6);
+
+    const allLinks = linkEnter.merge(linkSel);
+    allLinks.classed("selected", d => d === selectedLink);
+    allLinks.select(".g-link")
+        .style("stroke", d => d.color || DEF_LINK.color)
+        .style("stroke-width", d => (d.strokeWidth || DEF_LINK.width) + "px")
+        .attr("marker-end", d => ensureArrowMarker(d.color || DEF_LINK.color));
+    allLinks.select(".link-text")
+        .style("fill", d => d.textColor || null)
+        .style("font-size", d => d.fontSize ? d.fontSize + 'px' : null)
+        .text(d => d.amount);
+
+    // 节点层
+    const nodeSel = nodeLayer.selectAll(".g-node").data(nodes, d => d.id);
+    nodeSel.exit().remove();
+
+    const nodeEnter = nodeSel.enter().append("g").attr("class", "g-node")
+        .on("click", handleNodeClick)
+        .on("mousemove", (e, d) => {
+            if (d.tooltipHtml) showHoverTooltip(e, d.tooltipHtml);
+        })
+        .on("mouseleave", hideHoverTooltip)
+        .on("dblclick", (e, d) => { if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; } clearSelection(); updateGraph(); openAdvancedEditor(e, d, 'node'); })
+        .on("contextmenu", e => e.preventDefault())
+        .call(d3.drag().on("start", dragStart).on("drag", dragging).on("end", dragEnd));
+
+    nodeEnter.append("circle");
+    nodeEnter.append("image").attr("class", "node-bg-img").attr("preserveAspectRatio", "xMidYMid slice");
+    nodeEnter.append("foreignObject").attr("class", "node-fo")
+        .append("xhtml:div").attr("class", "node-label-wrap");
+
+    const allNodes = nodeEnter.merge(nodeSel);
+    allNodes.each(function(d) {
+        const el = d3.select(this);
+        const r  = d.radius || DEF_NODE.radius;
+        el.classed("selected", d === selectedNode);
+        el.classed("link-source", d === sourceNodeForLink);
+
+        const sw = d.strokeWidth != null ? d.strokeWidth : DEF_NODE.strokeWidth;
+        const sc = d.strokeColor || DEF_NODE.strokeColor;
+        el.select("circle")
+            .attr("r", r)
+            .style("fill", d.imageUrl ? 'none' : (d.color || DEF_NODE.color))
+            .style("stroke", sc)
+            .style("stroke-width", sw)
+            .style("filter", `drop-shadow(0 0 ${Math.max(4, sw * 3)}px ${sc})`);
+
+        const clipId = ensureImageClip(d.id);
+        defs.select("#clip-" + d.id + " circle").attr("r", r);
+
+        const imgEl = el.select(".node-bg-img");
+        if (d.imageUrl) {
+            imgEl.attr("href", d.imageUrl)
+                .attr("x", -r).attr("y", -r)
+                .attr("width", r*2).attr("height", r*2)
+                .attr("clip-path", "url(#" + clipId + ")")
+                .style("display", null);
+            el.select("circle").style("fill", d.color || DEF_NODE.color).style("opacity", 0.25);
+        } else {
+            imgEl.style("display", "none");
+            el.select("circle").style("fill", d.color || DEF_NODE.color).style("opacity", 1);
+        }
+
+        // foreignObject 标签位置（x/y 偏移）
+        const ox = d.labelOffsetX != null ? d.labelOffsetX : DEF_NODE.labelOffsetX;
+        const oy = d.labelOffsetY != null ? d.labelOffsetY : DEF_NODE.labelOffsetY;
+        const foW = 170, foH = 60;
+        const foX = ox - foW/2, foY = oy - foH/2;
+
+        el.select(".node-fo").attr("x", foX).attr("y", foY).attr("width", foW).attr("height", foH);
+        el.select(".node-label-wrap")
+            .attr("class", "node-label-wrap")
+            .style("width", foW + "px")
+            .html(d.labelHtml || '');
+    });
+
+    simulation.nodes(nodes);
+    simulation.force("link").links(links);
+    simulation.alpha(0.1).restart();
+    window.activeLinks = allLinks;
+    window.activeNodes = allNodes;
+}
+
+function ticked() {
+    if (window.activeLinks) {
+        window.activeLinks.select(".g-link")
+            .attr("d", d => computeLinkPath(d));
+        window.activeLinks.select(".link-text")
+            .attr("x", d => computeLinkTextPos(d).x)
+            .attr("y", d => computeLinkTextPos(d).y)
+            .attr("transform", d => {
+                const pos = computeLinkTextPos(d);
+                let angle = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI;
+                if (angle > 90) angle -= 180;
+                if (angle < -90) angle += 180;
+                return `rotate(${angle}, ${pos.x}, ${pos.y})`;
+            });
+    }
+    if (window.activeNodes)
+        window.activeNodes.attr("transform", d => `translate(${d.x},${d.y})`);
+}
+
+// ── Tooltip / Modal ──
+function showHoverTooltip(event, html) {
+    if (modalEl.classList.contains('open')) return;
+    tooltipDiv.html(html)
+        .style("left", (event.pageX + 15) + "px")
+        .style("top",  (event.pageY + 15) + "px")
+        .style("display", "block");
+}
+function hideHoverTooltip() { tooltipDiv.style("display", "none"); }
+function closeModal() { modalEl.classList.remove('open'); currentEditingTarget = null; currentEditingType = null; }
+
+// ── 实时颜色字段辅助 ──
+function addColorFieldRealtime(fc, labelText, id, val, onChange) {
+    const row = fc.append("div").attr("class", "modal-field");
+    row.append("label").text(labelText);
+    const r = row.append("div").attr("class", "field-row");
+    r.append("input").attr("type","color").attr("id", id).attr("value", val)
+        .on("input", function() {
+            document.getElementById(id + "-hex").value = this.value;
+            onChange(this.value);
+        });
+    r.append("input").attr("type","text").attr("id", id + "-hex").attr("value", val)
+        .on("input", function() {
+            const c = this.value;
+            try { document.getElementById(id).value = c; } catch(e) {}
+            onChange(c);
+        });
+}
+
+// HTML 转义
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── 打开编辑抽屉（实时渲染版）──
+function openAdvancedEditor(event, d, type) {
+    event.stopPropagation(); hideHoverTooltip();
+    currentEditingTarget = d; currentEditingType = type;
+    switchTab('visual');
+
+    const fc = d3.select("#modal-fields");
+    fc.html("");
+
+    if (type === 'node') {
+        document.getElementById('modal-icon').className = 'bi bi-node-plus';
+        document.getElementById('modal-title-text').textContent = '编辑节点属性';
+        document.getElementById('modal-delete-btn').innerHTML = '<i class="bi bi-trash"></i> 删除此节点';
+        document.getElementById('modal-delete-btn').onclick = () => deleteCurrent();
+
+        // 标签 HTML
+        fc.append("div").attr("class", "modal-section").text("节点标签（支持 HTML）");
+        fc.append("div").attr("class", "modal-field").html(
+            `<label><i class="bi bi-code-slash"></i> 标签内容 HTML</label>` +
+            `<textarea id="m-label-html" rows="3">${escHtml(d.labelHtml || '')}</textarea>`
+        );
+        document.getElementById("m-label-html").addEventListener("input", function() {
+            d.labelHtml = this.value; updateGraph();
+        });
+
+        // 标签偏移
+        fc.append("div").attr("class", "modal-field").html(`<label><i class="bi bi-arrows-move"></i> 标签偏移（相对节点圆心，px）</label>`);
+        const offWrap = fc.append("div").attr("class", "modal-field");
+        offWrap.html(
+            `<div class="field-row">` +
+            `<label style="min-width:20px;color:var(--text-muted);margin:0;">X</label>` +
+            `<input type="number" id="m-label-offset-x" value="${d.labelOffsetX != null ? d.labelOffsetX : DEF_NODE.labelOffsetX}" step="1">` +
+            `<label style="min-width:20px;color:var(--text-muted);margin:0 0 0 8px;">Y</label>` +
+            `<input type="number" id="m-label-offset-y" value="${d.labelOffsetY != null ? d.labelOffsetY : DEF_NODE.labelOffsetY}" step="1">` +
+            `</div>`
+        );
+        document.getElementById("m-label-offset-x").addEventListener("input", function() {
+            d.labelOffsetX = parseFloat(this.value) || 0; updateGraph();
+        });
+        document.getElementById("m-label-offset-y").addEventListener("input", function() {
+            d.labelOffsetY = parseFloat(this.value) || 0; updateGraph();
+        });
+
+        // Tooltip HTML
+        fc.append("div").attr("class", "modal-section").text("Tooltip（支持 HTML）");
+        fc.append("div").attr("class", "modal-field").html(
+            `<label><i class="bi bi-chat-left-text"></i> Tooltip 内容 HTML</label>` +
+            `<textarea id="m-tooltip-html" rows="4">${escHtml(d.tooltipHtml || '')}</textarea>`
+        );
+        document.getElementById("m-tooltip-html").addEventListener("input", function() {
+            d.tooltipHtml = this.value; updateGraph();
+        });
+
+        // 视觉样式
+        fc.append("div").attr("class", "modal-section").text("视觉样式");
+        addColorFieldRealtime(fc, "填充颜色", "m-node-color", d.color || DEF_NODE.color, val => { d.color = val; updateGraph(); });
+        addColorFieldRealtime(fc, "描边颜色", "m-node-stroke", d.strokeColor || DEF_NODE.strokeColor, val => { d.strokeColor = val; updateGraph(); });
+
+        const sw = fc.append("div").attr("class", "modal-field");
+        sw.append("label").text("描边宽度");
+        const sww = sw.append("div").attr("class", "field-row");
+        sww.append("span").attr("class","range-val").attr("id","m-node-stroke-w-val").text(d.strokeWidth != null ? d.strokeWidth : DEF_NODE.strokeWidth);
+        sww.append("input").attr("type","range").attr("id","m-node-stroke-w")
+            .attr("min",0).attr("max",8).attr("step",0.5).attr("value", d.strokeWidth != null ? d.strokeWidth : DEF_NODE.strokeWidth)
+            .on("input", function() {
+                document.getElementById("m-node-stroke-w-val").textContent = this.value;
+                d.strokeWidth = parseFloat(this.value);
+                updateGraph();
+            });
+
+        const rr = fc.append("div").attr("class", "modal-field");
+        rr.append("label").text("节点大小（半径）");
+        const rrw = rr.append("div").attr("class", "field-row");
+        rrw.append("span").attr("class","range-val").attr("id","m-node-radius-val").text(d.radius || DEF_NODE.radius);
+        rrw.append("input").attr("type","range").attr("id","m-node-radius")
+            .attr("min",8).attr("max",60).attr("step",1).attr("value", d.radius || DEF_NODE.radius)
+            .on("input", function() {
+                document.getElementById("m-node-radius-val").textContent = this.value;
+                d.radius = parseFloat(this.value);
+                updateGraph();
+            });
+
+        // 背景图片
+        fc.append("div").attr("class", "modal-section").text("背景图片");
+        const imgWrap = fc.append("div").attr("class", "modal-field");
+        imgWrap.html(`<label><i class="bi bi-image"></i> 图片 URL（留空则不使用）</label>` +
+            `<input type="text" id="m-img-url" placeholder="https://example.com/avatar.png" value="${d.imageUrl || ''}">`);
+        const previewImg = imgWrap.append("img").attr("class","img-preview").attr("id","m-img-preview");
+        if (d.imageUrl) { previewImg.attr("src", d.imageUrl).style("display","block"); }
+        document.getElementById("m-img-url").addEventListener("input", function() {
+            d.imageUrl = this.value.trim();
+            const prev = document.getElementById("m-img-preview");
+            if (this.value) { prev.src = this.value; prev.style.display = "block"; }
+            else { prev.style.display = "none"; }
+            updateGraph();
+        });
+
+    } else {
+        // 连线编辑
+        document.getElementById('modal-icon').className = 'bi bi-bezier2';
+        document.getElementById('modal-title-text').textContent = '编辑连线属性';
+        document.getElementById('modal-delete-btn').innerHTML = '<i class="bi bi-trash"></i> 删除此连线';
+        document.getElementById('modal-delete-btn').onclick = () => deleteCurrent();
+
+        fc.append("div").attr("class", "modal-field").html(
+            `<label>流向显示文本</label><input type="text" id="m-base-amount" value="${d.amount}">`
+        );
+        document.getElementById("m-base-amount").addEventListener("input", function() {
+            d.amount = this.value; updateGraph();
+        });
+
+        fc.append("div").attr("class", "modal-section").text("视觉样式");
+        addColorFieldRealtime(fc, "连线颜色", "m-link-color", d.color || DEF_LINK.color, val => { d.color = val; updateGraph(); });
+
+        const wr = fc.append("div").attr("class", "modal-field");
+        wr.append("label").text("连线粗细（px）");
+        const wrw = wr.append("div").attr("class", "field-row");
+        wrw.append("span").attr("class","range-val").attr("id","m-link-width-val").text(d.strokeWidth || DEF_LINK.width);
+        wrw.append("input").attr("type","range").attr("id","m-link-width")
+            .attr("min",1).attr("max",16).attr("step",0.5).attr("value", d.strokeWidth || DEF_LINK.width)
+            .on("input", function() {
+                document.getElementById("m-link-width-val").textContent = this.value;
+                d.strokeWidth = parseFloat(this.value);
+                updateGraph();
+            });
+
+        // 连线文本颜色
+        addColorFieldRealtime(fc, "文本颜色", "m-link-text-color", d.textColor || DEF_LINK.textColor, val => { d.textColor = val; updateGraph(); });
+
+        // 连线文本字号
+        const fsr = fc.append("div").attr("class", "modal-field");
+        fsr.append("label").text("文本字号（0 = 默认）");
+        const fsrw = fsr.append("div").attr("class", "field-row");
+        fsrw.append("span").attr("class","range-val").attr("id","m-link-font-size-val").text(d.fontSize || '默认');
+        fsrw.append("input").attr("type","range").attr("id","m-link-font-size")
+            .attr("min",0).attr("max",24).attr("step",1).attr("value", d.fontSize || 0)
+            .on("input", function() {
+                const v = parseInt(this.value);
+                document.getElementById("m-link-font-size-val").textContent = v || '默认';
+                d.fontSize = v;
+                updateGraph();
+            });
+
+        if (Object.keys(d.tooltipData).length) {
+            fc.append("div").attr("class", "modal-section").text("Tooltip 扩展字段");
+            for (let k in d.tooltipData) {
+                fc.append("div").attr("class","modal-field")
+                  .html(`<label>${k}</label><input type="text" data-key="${k}" class="m-custom-field" value="${d.tooltipData[k]}">`);
+            }
+            setTimeout(() => {
+                document.querySelectorAll("#modal-fields .m-custom-field").forEach(inp => {
+                    inp.addEventListener("input", function() {
+                        d.tooltipData[this.getAttribute("data-key")] = this.value;
+                        updateGraph();
+                    });
+                });
+            }, 100);
+        }
+    }
+
+    modalEl.classList.add('open');
+}
+
+function deleteCurrent() {
+    if (!currentEditingTarget) return;
+    if (currentEditingType === 'node') {
+        nodes = nodes.filter(n => n !== currentEditingTarget);
+        links = links.filter(l => (l.source.id || l.source) !== currentEditingTarget.id && (l.target.id || l.target) !== currentEditingTarget.id);
+    } else {
+        links = links.filter(l => l !== currentEditingTarget);
+    }
+    closeModal(); updateGraph();
+}
+
+// ── 帮助弹窗 ──
+function openHelpModal()  { document.getElementById("help-modal-wrap").classList.add("active"); }
+function closeHelpModal(e) {
+    if (!e || e.target === document.getElementById("help-modal-wrap"))
+        document.getElementById("help-modal-wrap").classList.remove("active");
+}
+
+// ── 导出下拉 ──
+function toggleDropdown(e, id) { e.stopPropagation(); closeDropdowns(); document.getElementById(id).classList.toggle("open"); }
+function closeDropdowns() { document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open')); }
+document.addEventListener("click", closeDropdowns);
+
+// ── 主题切换 ──
+let isDarkTheme = true;
+function toggleTheme() {
+    isDarkTheme = !isDarkTheme;
+    document.body.classList.toggle('light-theme', !isDarkTheme);
+    const btn = document.getElementById('theme-toggle-btn');
+    btn.innerHTML = isDarkTheme
+        ? '<i class="bi bi-moon-stars-fill"></i> 主题'
+        : '<i class="bi bi-sun-fill"></i> 主题';
+    // 重绘网格颜色
+    if (gridVisible) drawGrid();
+}
+
+// ── 网格线 ──
+let gridVisible = false;
+let gridLayer = null;
+function toggleGrid() {
+    gridVisible = !gridVisible;
+    document.getElementById('grid-toggle-btn').classList.toggle('active-toggle', gridVisible);
+    if (gridVisible) {
+        if (!gridLayer) gridLayer = container.insert("g", ":first-child").attr("class", "grid-layer");
+        drawGrid();
+    } else if (gridLayer) {
+        gridLayer.selectAll("*").remove();
+    }
+}
+function drawGrid() {
+    if (!gridLayer) return;
+    gridLayer.selectAll("*").remove();
+    const step = 50, majorEvery = 5;
+    const extent = 5000;
+    const color = isDarkTheme ? '#1e293b' : '#e2e8f0';
+    const majorColor = isDarkTheme ? '#293548' : '#cbd5e1';
+    for (let x = -extent; x <= extent; x += step) {
+        const isMajor = x % (step * majorEvery) === 0;
+        gridLayer.append("line")
+            .attr("x1", x).attr("y1", -extent).attr("x2", x).attr("y2", extent)
+            .attr("stroke", isMajor ? majorColor : color)
+            .attr("stroke-width", isMajor ? 1 : 0.5);
+    }
+    for (let y = -extent; y <= extent; y += step) {
+        const isMajor = y % (step * majorEvery) === 0;
+        gridLayer.append("line")
+            .attr("x1", -extent).attr("y1", y).attr("x2", extent).attr("y2", y)
+            .attr("stroke", isMajor ? majorColor : color)
+            .attr("stroke-width", isMajor ? 1 : 0.5);
+    }
+}
+
+// ── 预设节点 ──
+const PRESET_KEY = 'blockchain-atlas-presets';
+function loadPresets() { try { return JSON.parse(localStorage.getItem(PRESET_KEY)) || []; } catch(e) { return []; } }
+function savePresets(arr) { localStorage.setItem(PRESET_KEY, JSON.stringify(arr)); }
+
+function refreshPresetMenu() {
+    const menu = document.getElementById('preset-menu');
+    const presets = loadPresets();
+    let html = '';
+    if (presets.length === 0) {
+        html = '<div style="padding:12px 14px;font-size:12px;color:var(--text-muted);text-align:center;">暂无预设，右键节点可保存为预设</div>';
+    } else {
+        presets.forEach((p, i) => {
+            html += `<div class="dropdown-item preset-item" onclick="insertPreset(${i}); closeDropdowns()">
+                <span class="preset-name"><i class="bi bi-bookmark" style="font-size:12px;color:var(--theme-color);margin-right:4px;"></i>${escHtml(p.name)}</span>
+                <span class="preset-del" onclick="event.stopPropagation(); deletePreset(${i})" title="删除"><i class="bi bi-x-lg"></i></span>
+            </div>`;
+        });
+    }
+    html += `<div class="preset-add-btn" onclick="saveCurrentAsPreset(); closeDropdowns()"><i class="bi bi-plus-circle"></i> 保存当前编辑节点为预设</div>`;
+    menu.innerHTML = html;
+}
+
+function insertPreset(idx) {
+    const presets = loadPresets();
+    if (!presets[idx]) return;
+    const tpl = presets[idx].data;
+    const n = { ...tpl };
+    n.id = "addr_" + Date.now().toString().slice(-6);
+    n.x = W/2; n.y = H/2;
+    delete n.fx; delete n.fy;
+    nodes.push(n);
+    updateGraph();
+}
+
+function deletePreset(idx) {
+    const presets = loadPresets();
+    presets.splice(idx, 1);
+    savePresets(presets);
+    refreshPresetMenu();
+}
+
+function saveCurrentAsPreset() {
+    if (!currentEditingTarget || currentEditingType !== 'node') {
+        alert('请先双击一个节点打开编辑面板，再保存为预设'); return;
+    }
+    const name = prompt('请输入预设名称：', currentEditingTarget.labelHtml ? currentEditingTarget.labelHtml.replace(/<[^>]*>/g, '').trim() : '预设节点');
+    if (!name) return;
+    const presets = loadPresets();
+    const data = {};
+    const fields = ['color','strokeColor','strokeWidth','radius','labelOffsetX','labelOffsetY','labelHtml','tooltipHtml','imageUrl'];
+    fields.forEach(f => { if (currentEditingTarget[f] !== undefined) data[f] = currentEditingTarget[f]; });
+    presets.push({ name, data });
+    savePresets(presets);
+}
+
+// ── 右键上下文菜单 ──
+let ctxNode = null;       // 右键点击的节点
+let clipboardNode = null; // 复制的节点数据
+let canvasPastePos = { x: W/2, y: H/2 }; // 画布右键位置（画布坐标）
+
+// 隐藏右键菜单
+function hideNodeCtxMenu() { document.getElementById('node-ctx-menu').classList.remove('open'); }
+function hideCanvasCtxMenu() { document.getElementById('canvas-ctx-menu').classList.remove('open'); }
+function hideAllCtxMenus() { hideNodeCtxMenu(); hideCanvasCtxMenu(); }
+document.addEventListener('click', hideAllCtxMenus);
+
+// 右键事件分发
+document.addEventListener('contextmenu', function(e) {
+    const gNode = e.target.closest('.g-node');
+    const gLink = e.target.closest('.link-group');
+    if (gNode) {
+        // 节点上右键 → 显示节点菜单
+        e.preventDefault();
+        const el = d3.select(gNode);
+        const d = el.datum();
+        if (!d) { hideAllCtxMenus(); return; }
+        ctxNode = d;
+        hideCanvasCtxMenu();
+        const menu = document.getElementById('node-ctx-menu');
+        menu.style.left = e.clientX + 'px';
+        menu.style.top = e.clientY + 'px';
+        menu.classList.add('open');
+    } else if (!gLink) {
+        // 画布空白处右键 → 显示画布菜单（粘贴）
+        const svgEl = e.target.closest('#canvas');
+        if (svgEl) {
+            e.preventDefault();
+            // 将屏幕坐标转为画布坐标
+            const t = d3.zoomTransform(svg.node());
+            const [px, py] = d3.pointer(e, svg.node());
+            canvasPastePos = {
+                x: (px - t.x) / t.k,
+                y: (py - t.y) / t.k
+            };
+            hideNodeCtxMenu();
+            const menu = document.getElementById('canvas-ctx-menu');
+            const pasteItem = document.getElementById('ctx-paste');
+            if (clipboardNode) {
+                pasteItem.classList.remove('disabled');
+            } else {
+                pasteItem.classList.add('disabled');
+            }
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.classList.add('open');
+        } else {
+            hideAllCtxMenus();
+        }
+    } else {
+        // 连线上右键 → 不显示菜单
+        hideAllCtxMenus();
+    }
+});
+
+// ── 节点右键菜单操作 ──
+document.getElementById('ctx-copy').addEventListener('click', function() {
+    if (!ctxNode) return;
+    clipboardNode = { ...ctxNode };
+    delete clipboardNode.fx; delete clipboardNode.fy;
+    hideNodeCtxMenu();
+});
+
+document.getElementById('ctx-export-node').addEventListener('click', function() {
+    if (!ctxNode) return;
+    const d = ctxNode;
+    const obj = {};
+    const fields = ['id','x','y','color','strokeColor','strokeWidth','radius','labelOffsetX','labelOffsetY','labelHtml','tooltipHtml','imageUrl'];
+    fields.forEach(f => { if (d[f] !== undefined) obj[f] = d[f]; });
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `node_${d.id}_${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
+    hideNodeCtxMenu();
+});
+
+document.getElementById('ctx-save-preset').addEventListener('click', function() {
+    if (!ctxNode) return;
+    const name = prompt('请输入预设名称：', ctxNode.labelHtml ? ctxNode.labelHtml.replace(/<[^>]*>/g, '').trim() : '预设节点');
+    if (!name) return;
+    const presets = loadPresets();
+    const data = {};
+    const fields = ['color','strokeColor','strokeWidth','radius','labelOffsetX','labelOffsetY','labelHtml','tooltipHtml','imageUrl'];
+    fields.forEach(f => { if (ctxNode[f] !== undefined) data[f] = ctxNode[f]; });
+    presets.push({ name, data });
+    savePresets(presets);
+    hideNodeCtxMenu();
+});
+
+// ── 画布右键菜单操作 ──
+document.getElementById('ctx-paste').addEventListener('click', function() {
+    if (!clipboardNode) return;
+    const n = { ...clipboardNode };
+    n.id = "addr_" + Date.now().toString().slice(-6);
+    n.x = canvasPastePos.x;
+    n.y = canvasPastePos.y;
+    delete n.fx; delete n.fy;
+    nodes.push(n);
+    updateGraph();
+    hideCanvasCtxMenu();
+});
+
+// ── 布局切换 ──
+function triggerLayout(type) {
+    closeModal(); clearSelection();
+    if (type === 'free') {
+        nodes.forEach(d => { d.fx = d.x; d.fy = d.y; });
+    } else if (type === 'circular') {
+        const r = Math.min(W, H) * 0.3, cx = W/2, cy = H/2;
+        nodes.forEach((n, i) => {
+            const a = (i / nodes.length) * 2 * Math.PI;
+            n.x = cx + r * Math.cos(a); n.y = cy + r * Math.sin(a);
+            n.fx = n.x; n.fy = n.y;
+        });
+    } else if (type === 'flow') {
+        applyFlowLayout();
+    } else if (type === 'hierarchical') {
+        applyHierarchicalLayout();
+    }
+    updateGraph();
+    d3.select(".main-container").transition().duration(500).attr("transform", d3.zoomIdentity);
+    svg.call(zoomBehavior.transform, d3.zoomIdentity);
+}
+
+// 数据流向布局（DAG 左→右）
+function applyFlowLayout() {
+    const MAX_ITER = nodes.length * 2 + 10;
+    const inDeg = {}; nodes.forEach(n => inDeg[n.id] = 0);
+    const adj = {}; nodes.forEach(n => adj[n.id] = []);
+    links.forEach(l => {
+        const s = l.source.id || l.source, t = l.target.id || l.target;
+        inDeg[t] = (inDeg[t] || 0) + 1;
+        if (!adj[s]) adj[s] = [];
+        if (!adj[s].includes(t)) adj[s].push(t);
+    });
+    // 拓扑分层（Kahn 算法，安全处理环）
+    const layer = {}; nodes.forEach(n => layer[n.id] = 0);
+    const q = nodes.filter(n => (inDeg[n.id] || 0) === 0).map(n => n.id);
+    const visited = new Set(q);
+    // BFS 分层
+    let head = 0;
+    while (head < q.length) {
+        const u = q[head]; head++;
+        (adj[u] || []).forEach(v => {
+            if (layer[v] <= layer[u]) layer[v] = layer[u] + 1;
+            inDeg[v]--;
+            if (inDeg[v] === 0 && !visited.has(v)) { visited.add(v); q.push(v); }
+        });
+    }
+    // 环中节点：分配到已有最大层+1 或 0
+    nodes.forEach(n => {
+        if (!visited.has(n.id)) layer[n.id] = 0;
+    });
+    // 双向边导致的残余环：用最长路径法再迭代一次
+    let changed = true, iter = 0;
+    while (changed && iter < MAX_ITER) {
+        changed = false; iter++;
+        links.forEach(l => {
+            const s = l.source.id || l.source, t = l.target.id || l.target;
+            if (layer[t] <= layer[s]) { layer[t] = layer[s] + 1; changed = true; }
+        });
+    }
+    const groups = {};
+    nodes.forEach(n => {
+        const v = layer[n.id];
+        if (!groups[v]) groups[v] = [];
+        groups[v].push(n);
+    });
+    const maxLayer = Math.max(...Object.keys(groups).map(Number));
+    const colW = (W - 200) / (maxLayer + 1);
+    const midX = 100;
+    Object.keys(groups).forEach(v => {
+        const g = groups[v];
+        const rowH = (H - 200) / (g.length + 1);
+        g.forEach((n, idx) => {
+            n.x = midX + colW * (+v);
+            n.y = 100 + rowH * (idx + 1);
+            n.fx = n.x; n.fy = n.y;
+        });
+    });
+}
+
+// 层级树状布局（根在上，子在下，上→下）
+function applyHierarchicalLayout() {
+    if (!nodes.length) return;
+    const hasIncoming = {};
+    links.forEach(l => { const t = l.target.id || l.target; hasIncoming[t] = true; });
+    let root = nodes.find(n => !hasIncoming[n.id]) || nodes[0];
+
+    const childrenMap = {};
+    nodes.forEach(n => childrenMap[n.id] = []);
+    links.forEach(l => {
+        const s = l.source.id || l.source, t = l.target.id || l.target;
+        if (childrenMap[s] && !childrenMap[s].includes(t)) childrenMap[s].push(t);
+    });
+
+    const depth = maxDepth(root.id, childrenMap, 0);
+    const rowH = (H - 200) / (depth + 1); // 深度方向为纵向（上→下）
+
+    // 计算子树节点数用于列宽
+    const visited = {};
+    function countSubtree(id) {
+        if (visited[id]) return 0;
+        visited[id] = true;
+        let total = 1;
+        (childrenMap[id] || []).forEach(c => { total += countSubtree(c); });
+        return total;
+    }
+    const totalNodes = countSubtree(root.id);
+    const colW = Math.max(100, (W - 200) / totalNodes);
+
+    // 递归分配位置（上→下布局，带环检测）
+    const xCursor = { v: 100 };
+    const assigned = new Set();
+    function assignPos(id, d) {
+        if (assigned.has(id)) return;
+        assigned.add(id);
+        const n = nodes.find(nn => nn.id === id);
+        if (!n) return;
+        n.y = 100 + rowH * d;
+        const kids = childrenMap[id] || [];
+        if (kids.length === 0) {
+            n.x = xCursor.v;
+            xCursor.v += colW;
+        } else {
+            const startX = xCursor.v;
+            kids.forEach(c => assignPos(c, d + 1));
+            const endX = xCursor.v;
+            n.x = (startX + endX) / 2;
+        }
+        n.fx = n.x; n.fy = n.y;
+    }
+    assignPos(root.id, 0);
+}
+
+function maxDepth(id, childrenMap, d, visited) {
+    if (!visited) visited = new Set();
+    if (visited.has(id)) return d;
+    visited.add(id);
+    const kids = childrenMap[id] || [];
+    if (kids.length === 0) return d;
+    return Math.max(...kids.map(c => maxDepth(c, childrenMap, d + 1, visited)));
+}
+
+// ── 常规功能 ──
+function clearCanvas() { nodes = []; links = []; clearSelection(); closeModal(); updateGraph(); }
+
+function addNewNodeManual() {
+    const id = "addr_" + Date.now().toString().slice(-6);
+    nodes.push({
+        id, x: W/2, y: H/2,
+        color: DEF_NODE.color, strokeColor: DEF_NODE.strokeColor, radius: DEF_NODE.radius,
+        labelOffsetX: 0, labelOffsetY: 34,
+        labelHtml: '<b>新节点</b>',
+        tooltipHtml: '<div style="color:#38bdf8;font-weight:bold;">新节点</div><div>双击编辑属性</div>',
+        imageUrl: ''
+    });
+    updateGraph();
+}
+
+function exportJSON() {
+    // 导出时 source/target 只保留 ID 字符串，避免序列化整个节点对象
+    const cleanLinks = links.map(l => ({
+        ...l,
+        source: l.source.id || l.source,
+        target: l.target.id || l.target
+    }));
+    // 移除内部属性
+    cleanLinks.forEach(l => { delete l._bidirectional; delete l._curveDir; delete l._cx; delete l._cy; });
+    const blob = new Blob([JSON.stringify({ nodes, links: cleanLinks }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `atlas_${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+// 导入 JSON
+document.getElementById('json-import-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if (data.nodes && Array.isArray(data.nodes)) {
+                // 兼容旧版 labelPos → labelOffsetX/Y
+                data.nodes.forEach(n => {
+                    if (n.labelOffsetX == null && n.labelPos) {
+                        const r = n.radius || DEF_NODE.radius;
+                        if (n.labelPos === 'right')      { n.labelOffsetX = r + 91; n.labelOffsetY = 0; }
+                        else if (n.labelPos === 'left')   { n.labelOffsetX = -(r + 91); n.labelOffsetY = 0; }
+                        else if (n.labelPos === 'top')    { n.labelOffsetX = 0; n.labelOffsetY = -(r + 36); }
+                        else                               { n.labelOffsetX = 0; n.labelOffsetY = r + 36; }
+                        delete n.labelPos;
+                    }
+                    if (n.labelOffsetX == null) n.labelOffsetX = DEF_NODE.labelOffsetX;
+                    if (n.labelOffsetY == null) n.labelOffsetY = DEF_NODE.labelOffsetY;
+                });
+                nodes = data.nodes;
+            }
+            if (data.links && Array.isArray(data.links)) {
+                links = data.links;
+            }
+            closeModal(); clearSelection(); updateGraph();
+        } catch(err) {
+            alert('JSON 导入失败: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    this.value = '';
+});
+
+// 导出辅助：计算所有节点的包围盒
+function getExportBounds() {
+    if (!nodes.length) return { x: 0, y: 0, w: 900, h: 600 };
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nodes.forEach(n => {
+        const r = n.radius || DEF_NODE.radius;
+        const ox = n.labelOffsetX != null ? n.labelOffsetX : DEF_NODE.labelOffsetX;
+        const oy = n.labelOffsetY != null ? n.labelOffsetY : DEF_NODE.labelOffsetY;
+        minX = Math.min(minX, n.x - r);
+        minY = Math.min(minY, n.y - r);
+        maxX = Math.max(maxX, n.x + r);
+        maxY = Math.max(maxY, n.y + r);
+        // 标签区域（foreignObject 范围）
+        const lx = ox - 85, ly = oy - 30, lw = 170, lh = 60;
+        minX = Math.min(minX, n.x + lx);
+        minY = Math.min(minY, n.y + ly);
+        maxX = Math.max(maxX, n.x + lx + lw);
+        maxY = Math.max(maxY, n.y + ly + lh);
+    });
+    const pad = 60;
+    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+}
+
+// 将 foreignObject 替换为纯 SVG <text>（用于导出）
+function replaceForeignObject(svgEl) {
+    const fos = svgEl.querySelectorAll('.node-fo');
+    fos.forEach(fo => {
+        const parent = fo.parentNode;
+        if (!parent) return;
+        const ox = parseFloat(fo.getAttribute('x')) || 0;
+        const oy = parseFloat(fo.getAttribute('y')) || 0;
+        const w  = parseFloat(fo.getAttribute('width'))  || 170;
+        const labelWrap = fo.querySelector('.node-label-wrap');
+        const textContent = labelWrap ? labelWrap.textContent.trim() : '';
+        if (!textContent) { fo.remove(); return; }
+
+        const lines = textContent.split('\n').filter(l => l.trim());
+        // 如果 labelHtml 里有 <br>，也按行拆分
+        // textContent 不会保留 <br>，所以只能拿到纯文本合并成一行
+        // 退而求其次：直接用 textContent（可能是多行合并的）
+        // 按约 20 字符手动换行
+        const charsPerLine = 20;
+        const wrapped = [];
+        let remain = textContent;
+        while (remain.length > charsPerLine) {
+            let cut = remain.lastIndexOf(' ', charsPerLine);
+            if (cut <= 0) cut = charsPerLine;
+            wrapped.push(remain.substring(0, cut).trim());
+            remain = remain.substring(cut).trim();
+        }
+        if (remain) wrapped.push(remain);
+
+        const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textEl.setAttribute('x', ox + w / 2);
+        textEl.setAttribute('y', oy);
+        textEl.setAttribute('text-anchor', 'middle');
+        textEl.setAttribute('dominant-baseline', 'central');
+        textEl.setAttribute('font-size', '12px');
+        textEl.setAttribute('fill', isDarkTheme ? '#f8fafc' : '#1e293b');
+        textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+
+        const lineHeight = 16;
+        const startDY = -(wrapped.length - 1) * lineHeight / 2;
+        wrapped.forEach((line, i) => {
+            const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+            tspan.setAttribute('x', ox + w / 2);
+            tspan.setAttribute('dy', i === 0 ? (wrapped.length <= 1 ? '0' : startDY) : lineHeight);
+            tspan.textContent = line;
+            textEl.appendChild(tspan);
+        });
+        parent.replaceChild(textEl, fo);
+    });
+}
+
+// 导出通用：准备一个干净的 SVG 克隆
+function prepareExportSvg() {
+    const el = document.getElementById('canvas');
+    const clone = el.cloneNode(true);
+    clone.style.padding = '0';
+
+    // 移除网格
+    const gl = clone.querySelector('.grid-layer');
+    if (gl) gl.remove();
+
+    // 移除缩放变换，使节点坐标直接生效
+    const container = clone.querySelector('.main-container');
+    if (container) container.removeAttribute('transform');
+
+    // 计算包围盒并设置 viewBox
+    const b = getExportBounds();
+    clone.removeAttribute('width');
+    clone.removeAttribute('height');
+    clone.setAttribute('width', b.w);
+    clone.setAttribute('height', b.h);
+    clone.setAttribute('viewBox', `${b.x} ${b.y} ${b.w} ${b.h}`);
+
+    // 替换 foreignObject 为 SVG text
+    replaceForeignObject(clone);
+
+    // 添加背景矩形
+    const bgColor = isDarkTheme ? '#0f172a' : '#f1f5f9';
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('x', b.x);
+    bg.setAttribute('y', b.y);
+    bg.setAttribute('width', b.w);
+    bg.setAttribute('height', b.h);
+    bg.setAttribute('fill', bgColor);
+    clone.insertBefore(bg, clone.firstChild);
+
+    // 内联关键样式（去掉对页面 CSS 的依赖）
+    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    style.textContent = `
+        .g-link { fill: none; }
+        .link-text { font-size: 11px; fill: #64748b; text-anchor: middle; font-weight: bold; }
+        text { font-size: 12px; }
+    `;
+    clone.insertBefore(style, clone.firstChild);
+
+    return { clone, bounds: b };
+}
+
+// 导出辅助：临时隐藏网格
+function hideGridForExport() { if (gridLayer) gridLayer.style("display", "none"); }
+function showGridAfterExport() { if (gridLayer && gridVisible) gridLayer.style("display", null); }
+
+// 导出 SVG（使用通用导出准备函数）
+function exportSVG() {
+    const { clone } = prepareExportSvg();
+    const s = new XMLSerializer();
+    const blob = new Blob([s.serializeToString(clone)], { type: "image/svg+xml;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `atlas_${Date.now()}.svg`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// 导出 PNG（使用通用导出准备函数）
+function exportPNG() {
+    const { clone, bounds } = prepareExportSvg();
+    const s = new XMLSerializer();
+    const svgStr = s.serializeToString(clone);
+    const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+        const sc = 2;
+        const cv = document.createElement("canvas");
+        cv.width = bounds.w * sc;
+        cv.height = bounds.h * sc;
+        const ctx = cv.getContext("2d");
+        ctx.scale(sc, sc);
+        ctx.fillStyle = isDarkTheme ? "#0f172a" : "#f1f5f9";
+        ctx.fillRect(0, 0, bounds.w, bounds.h);
+        ctx.drawImage(img, 0, 0, bounds.w, bounds.h);
+        URL.revokeObjectURL(url);
+        cv.toBlob(blob => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `atlas_${Date.now()}.png`;
+            a.click();
+        }, "image/png");
+    };
+    img.src = url;
+}
+
+// 单击空白画布：清除选择
+svg.on("click", function() {
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+    if (selectedNode || selectedLink || sourceNodeForLink) {
+        clearSelection();
+        updateGraph();
+    }
+});
+
+// 双击空白建点
+svg.on("dblclick", function(event) {
+    if (event.target.tagName !== "svg") return;
+    const t = d3.zoomTransform(svg.node()), [px, py] = d3.pointer(event);
+    const rx = (px - t.x) / t.k, ry = (py - t.y) / t.k;
+    const id = "addr_" + Date.now().toString().slice(-6);
+    nodes.push({
+        id, x: rx, y: ry,
+        color: DEF_NODE.color, strokeColor: DEF_NODE.strokeColor, radius: DEF_NODE.radius,
+        labelOffsetX: 0, labelOffsetY: 34,
+        labelHtml: '<b>新节点</b>',
+        tooltipHtml: '<div style="color:#38bdf8;font-weight:bold;">新节点</div><div>双击编辑属性</div>',
+        imageUrl: ''
+    });
+    updateGraph();
+});
+
+function handleNodeClick(event, d) {
+    event.stopPropagation(); closeModal();
+    // 用定时器区分单击和双击：双击的前两次点击会触发两次 click 事件，
+    // 在第二次 click 到达时取消定时器，由 dblclick 处理编辑。
+    if (clickTimer) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        return; // 这是双击的第二次点击，忽略
+    }
+    const clickedNode = d;
+    clickTimer = setTimeout(() => {
+        clickTimer = null;
+        if (!sourceNodeForLink) {
+            sourceNodeForLink = clickedNode;
+            selectedNode = clickedNode;
+        } else if (sourceNodeForLink === clickedNode) {
+            clearSelection();
+        } else {
+            links.push({
+                source: sourceNodeForLink.id, target: clickedNode.id, amount: "连线",
+                color: DEF_LINK.color, strokeWidth: DEF_LINK.width,
+                tooltipData: { "交易哈希": "未生成" }
+            });
+            clearSelection();
+        }
+        updateGraph();
+    }, 280);
+}
+
+function dragStart(e, d) { hideHoverTooltip(); if (!e.active) simulation.alphaTarget(0.1).restart(); d.fx = d.x; d.fy = d.y; }
+function dragging(e, d)  { d.fx = e.x; d.fy = e.y; d.x = e.x; d.y = e.y; }
+function dragEnd(e, d)   { if (!e.active) simulation.alphaTarget(0); }
+function clearSelection() { selectedNode = null; selectedLink = null; sourceNodeForLink = null; }
+
+d3.select(window).on("keydown", function(e) {
+    if (e.key === "Escape") {
+        if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+        clearSelection(); updateGraph();
+        return;
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+        if (document.activeElement && ["INPUT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+        if (selectedNode) {
+            nodes = nodes.filter(n => n !== selectedNode);
+            links = links.filter(l => (l.source.id || l.source) !== selectedNode.id && (l.target.id || l.target) !== selectedNode.id);
+            clearSelection(); updateGraph();
+        } else if (selectedLink) {
+            links = links.filter(l => l !== selectedLink);
+            clearSelection(); updateGraph();
+        }
+    }
+});
+
+// Tab 按钮绑定（DOM 加载后）
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        switchTab(this.dataset.tab);
+    });
+});
+// JSON 编辑器实时输入绑定
+document.getElementById('json-editor').addEventListener('input', onJsonInput);
+
+updateGraph();
+
+</script>
+</body>
+</html>
