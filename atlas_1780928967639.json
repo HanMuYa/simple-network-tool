@@ -1,0 +1,523 @@
+{
+  "nodes": [
+    {
+      "id": "addr_01",
+      "x": 96,
+      "y": 249,
+      "color": "#0f2a5e",
+      "strokeColor": "#3b82f6",
+      "radius": 28,
+      "labelOffsetX": 6,
+      "labelOffsetY": -40,
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;margin-bottom:6px;\">交易所热钱包</div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">风险评级</span><span class=\"tooltip-val\" style=\"color:#22c55e;\">低风险</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">持有资产</span><span class=\"tooltip-val\">45,000,000 USDT</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">最后活跃</span><span class=\"tooltip-val\">2026-06-08</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">备注</span><span class=\"tooltip-val\">充值主节点</span></div>",
+      "imageUrl": "https://ts3.tc.mm.bing.net/th/id/OIP-C.VCcgAcUd3Xv7HszQm8ZaJQHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+      "index": 0,
+      "vy": 0,
+      "vx": 0,
+      "fx": 96,
+      "fy": 249,
+      "labelHtml": "<div style=\"font-size: 20px;\">node-1</div>"
+    },
+    {
+      "id": "addr_02",
+      "x": 820.8,
+      "y": 585,
+      "color": "#4c1d1d",
+      "strokeColor": "#ef4444",
+      "radius": 38,
+      "labelOffsetX": 5,
+      "labelOffsetY": -50,
+      "labelHtml": "<b style=\"color:#fca5a5;\">节点</b><br><span style=\"color:#64748b;font-size:10px;\">TX9qvC…MCMQ</span>",
+      "tooltipHtml": "<div style=\"color:#ef4444;font-weight:bold;margin-bottom:6px;\">⚠️ 高危节点</div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">风险评级</span><span class=\"tooltip-val\" style=\"color:#ef4444;\">高危</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">持有资产</span><span class=\"tooltip-val\">12,401 USDT</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">防洗钱警报</span><span class=\"tooltip-val\">频繁小额混币</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">归属地</span><span class=\"tooltip-val\">未知匿名</span></div>",
+      "imageUrl": "https://c-ssl.duitang.com/uploads/item/201902/14/20190214162438_NxGK5.jpeg",
+      "index": 1,
+      "vy": 0,
+      "vx": 0,
+      "fx": 820.8,
+      "fy": 585
+    },
+    {
+      "id": "addr_03",
+      "x": 793.2,
+      "y": 246,
+      "color": "#1c3a2a",
+      "strokeColor": "#22c55e",
+      "radius": 30,
+      "labelOffsetX": 6,
+      "labelOffsetY": -40,
+      "labelHtml": "<b style=\"color:#bbf7d0;\">节点</b><br><span style=\"color:#64748b;font-size:10px;\">TR7NHw…A6m</span>",
+      "tooltipHtml": "<div style=\"color:#22c55e;font-weight:bold;margin-bottom:6px;\">智能合约节点</div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">风险评级</span><span class=\"tooltip-val\" style=\"color:#facc15;\">中风险</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">类型</span><span class=\"tooltip-val\">智能合约</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">代码开源</span><span class=\"tooltip-val\">是</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">总质押量</span><span class=\"tooltip-val\">1.2B</span></div>",
+      "imageUrl": "https://ts1.tc.mm.bing.net/th/id/R-C.f138c832a5e4a48cf1eb3321ccf34e1a?rik=Iiz%2fqSa3U6JrmA&riu=http%3a%2f%2fimg.52desk.com%2ftp%2f15282448Sgs.jpg&ehk=%2fSLQ%2bBE0%2fiLsh5Rfyhra5FYNzAbrSC3vLpEN%2bHmlNPY%3d&risl=&pid=ImgRaw&r=0",
+      "index": 2,
+      "vy": 0,
+      "vx": 0,
+      "fx": 793.2,
+      "fy": 246
+    },
+    {
+      "id": "addr_933342",
+      "x": 483.4,
+      "y": 246,
+      "color": "#1e3a8a",
+      "strokeColor": "#3b82f6",
+      "radius": 22,
+      "labelOffsetX": 6,
+      "labelOffsetY": 55,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "https://c-ssl.duitang.com/uploads/item/201902/14/20190214162438_NxGK5.jpeg",
+      "fx": 483.4,
+      "fy": 246,
+      "index": 3,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "id": "addr_958067",
+      "x": 1085.6,
+      "y": 414,
+      "color": "#1c3a2a",
+      "strokeColor": "#22c55e",
+      "radius": 30,
+      "labelOffsetX": 80,
+      "labelOffsetY": 10,
+      "labelHtml": "<b style=\"color:#bbf7d0;\">节点</b><br><span style=\"color:#64748b;font-size:10px;\">这是节点</span>",
+      "tooltipHtml": "<div style=\"color:#22c55e;font-weight:bold;margin-bottom:6px;\">智能合约节点</div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">风险评级</span><span class=\"tooltip-val\" style=\"color:#facc15;\">中风险</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">类型</span><span class=\"tooltip-val\">智能合约</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">代码开源</span><span class=\"tooltip-val\">是</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">总质押量</span><span class=\"tooltip-val\">1.2B</span></div>",
+      "imageUrl": "https://ts1.tc.mm.bing.net/th/id/R-C.f138c832a5e4a48cf1eb3321ccf34e1a?rik=Iiz%2fqSa3U6JrmA&riu=http%3a%2f%2fimg.52desk.com%2ftp%2f15282448Sgs.jpg&ehk=%2fSLQ%2bBE0%2fiLsh5Rfyhra5FYNzAbrSC3vLpEN%2bHmlNPY%3d&risl=&pid=ImgRaw&r=0",
+      "index": 4,
+      "vy": 0,
+      "vx": 0,
+      "fx": 1085.6,
+      "fy": 414
+    },
+    {
+      "id": "addr_972295",
+      "x": 93.53236389160156,
+      "y": 419.4788513183594,
+      "color": "#1e3a8a",
+      "strokeColor": "#3b82f6",
+      "radius": 22,
+      "labelOffsetX": 6,
+      "labelOffsetY": 55,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "https://ts4.tc.mm.bing.net/th/id/OIP-C.yExUk2QJ6Z2jhPJP1Q8-SgHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+      "fx": 93.53236389160156,
+      "fy": 419.4788513183594,
+      "index": 5,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "color": "#4c1d1d",
+      "strokeColor": "#ef4444",
+      "radius": 24,
+      "labelOffsetX": 0,
+      "labelOffsetY": -50,
+      "labelHtml": "<b style=\"color:#fca5a5; font-size: 20px;\">node-2</b><br><span style=\"color:#64748b;font-size:10px;\">TX9qvC…MCMQ</span>",
+      "tooltipHtml": "<div style=\"color:#ef4444;font-weight:bold;margin-bottom:6px;\">⚠️ 高危节点</div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">风险评级</span><span class=\"tooltip-val\" style=\"color:#ef4444;\">高危</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">持有资产</span><span class=\"tooltip-val\">12,401 USDT</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">防洗钱警报</span><span class=\"tooltip-val\">频繁小额混币</span></div>\n<div class=\"tooltip-row\"><span class=\"tooltip-label\">归属地</span><span class=\"tooltip-val\">未知匿名</span></div>",
+      "imageUrl": "https://ts2.tc.mm.bing.net/th/id/OIP-C.wopbF1urpyk_qrmh4bj0VgHaEK?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+      "id": "addr_984606",
+      "x": 90.16590881347656,
+      "y": 582.3609619140625,
+      "fx": 90.16590881347656,
+      "fy": 582.3609619140625,
+      "index": 6,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "id": "addr_542693",
+      "x": 96,
+      "y": 332.3194885253906,
+      "color": "#f23636",
+      "strokeColor": "#c72354",
+      "radius": 22,
+      "labelOffsetX": 6,
+      "labelOffsetY": 60,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "",
+      "fx": 96,
+      "fy": 332.3194885253906,
+      "index": 7,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "id": "addr_274077",
+      "x": 490,
+      "y": 502,
+      "color": "#1e3a8a",
+      "strokeColor": "#3b82f6",
+      "radius": 22,
+      "labelOffsetX": 0,
+      "labelOffsetY": 34,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "",
+      "fx": 490,
+      "fy": 502,
+      "index": 8,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "id": "addr_375207",
+      "x": 484.72859435472526,
+      "y": 98.5177977468156,
+      "color": "#1e3a8a",
+      "strokeColor": "#3b82f6",
+      "radius": 22,
+      "labelOffsetX": 0,
+      "labelOffsetY": 34,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "",
+      "fx": 484.72859435472526,
+      "fy": 98.5177977468156,
+      "index": 9,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "id": "addr_389335",
+      "x": 91.72859435472536,
+      "y": 97.5177977468156,
+      "color": "#1e3a8a",
+      "strokeColor": "#3b82f6",
+      "radius": 22,
+      "labelOffsetX": 0,
+      "labelOffsetY": 34,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "",
+      "fx": 91.72859435472536,
+      "fy": 97.5177977468156,
+      "index": 10,
+      "vy": 0,
+      "vx": 0
+    },
+    {
+      "id": "addr_423447",
+      "x": 93.87655502462562,
+      "y": 719.9104155543401,
+      "color": "#1e3a8a",
+      "strokeColor": "#3b82f6",
+      "radius": 47,
+      "labelOffsetX": 6,
+      "labelOffsetY": 90,
+      "labelHtml": "<b>新节点</b>",
+      "tooltipHtml": "<div style=\"color:#38bdf8;font-weight:bold;\">新节点</div><div>双击编辑属性</div>",
+      "imageUrl": "https://ts4.tc.mm.bing.net/th/id/OIP-C.GEN8X8IPnV3ac1GTjaDK3wHaLH?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+      "fx": 93.87655502462562,
+      "fy": 719.9104155543401,
+      "index": 11,
+      "vy": 0,
+      "vx": 0
+    }
+  ],
+  "links": [
+    {
+      "source": "addr_01",
+      "target": "addr_02",
+      "amount": "50,000",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "0x89abcdef...",
+        "手续费": "12.5 TRX",
+        "区块高度": "84,910,233"
+      },
+      "index": 0,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_933342",
+      "target": "addr_02",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 1,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_933342",
+      "target": "addr_03",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 2,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_01",
+      "target": "addr_933342",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 3,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_03",
+      "target": "addr_958067",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 4,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_972295",
+      "target": "addr_958067",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 5,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_984606",
+      "target": "addr_02",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 6,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_542693",
+      "target": "addr_933342",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 7,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_274077",
+      "target": "addr_02",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 8,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_984606",
+      "target": "addr_274077",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 9,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_972295",
+      "target": "addr_274077",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 10,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_542693",
+      "target": "addr_274077",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 11,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_933342",
+      "target": "addr_958067",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 12,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_02",
+      "target": "addr_958067",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 13,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_274077",
+      "target": "addr_03",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 14,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_274077",
+      "target": "addr_958067",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 15,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_01",
+      "target": "addr_375207",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 16,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_375207",
+      "target": "addr_03",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 17,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_933342",
+      "target": "addr_375207",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 18,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_389335",
+      "target": "addr_375207",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 19,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_389335",
+      "target": "addr_274077",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 20,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_423447",
+      "target": "addr_274077",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 21,
+      "_midX": null,
+      "_midY": null
+    },
+    {
+      "source": "addr_423447",
+      "target": "addr_02",
+      "amount": "连线",
+      "color": "#475569",
+      "strokeWidth": 3,
+      "tooltipData": {
+        "交易哈希": "未生成"
+      },
+      "index": 22,
+      "_midX": null,
+      "_midY": null
+    }
+  ]
+}
